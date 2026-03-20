@@ -1,36 +1,68 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ArcSense — AI-Native News Experience Platform
 
-## Getting Started
+Business news reimagined with 5 AI-powered features.
 
-First, run the development server:
+## Features
+
+1. **My ET** — Personalized newsroom with 4 persona views (Investor, Founder, Student, Journalist)
+2. **News Navigator** — Interactive AI briefings with Q&A chat
+3. **AI Video Studio** — Transform articles into animated video presentations
+4. **Story Arc Tracker** — Timelines, player networks, sentiment charts, and predictions
+5. **Vernacular Engine** — Culturally adapted translations (Hindi, Tamil, Telugu, Bengali)
+
+## Tech Stack
+
+- Next.js 15 (App Router) + TypeScript
+- Tailwind CSS + shadcn/ui + Framer Motion
+- Recharts for data visualizations
+- Claude API via `@anthropic-ai/sdk`
+- Mock data fallback when API key is not configured
+
+## Setup
 
 ```bash
+# Install dependencies
+npm install
+
+# Set your Claude API key (optional — app works with mock data)
+# Edit .env.local and replace "your-api-key-here" with your key
+ANTHROPIC_API_KEY=sk-ant-...
+
+# Run development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+src/
+├── app/                    # Next.js App Router pages
+│   ├── page.tsx           # Landing page
+│   ├── my-et/             # Feature 1: Personalized Newsroom
+│   ├── navigator/         # Feature 2: Interactive Briefings
+│   ├── video-studio/      # Feature 3: AI Video Studio
+│   ├── story-arc/         # Feature 4: Story Arc Tracker
+│   ├── vernacular/        # Feature 5: Vernacular Engine
+│   └── api/               # API routes (AI + RSS)
+├── components/            # React components
+├── lib/                   # Claude client, RSS parser, prompts
+├── data/                  # Mock articles, arcs, briefings
+└── types/                 # TypeScript types
+```
 
-## Learn More
+## API Routes
 
-To learn more about Next.js, take a look at the following resources:
+| Route | Method | Description |
+|-------|--------|-------------|
+| `/api/news/feed` | GET | RSS feed with mock fallback |
+| `/api/ai/summarize` | POST | Persona-adapted article summary |
+| `/api/ai/briefing` | POST | Structured topic briefing |
+| `/api/ai/chat` | POST | Briefing Q&A |
+| `/api/ai/video-script` | POST | Video storyboard generation |
+| `/api/ai/story-arc` | POST | Story arc analysis |
+| `/api/ai/translate` | POST | Culturally adapted translation |
+| `/api/ai/sentiment` | POST | Sentiment analysis |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+All API routes fall back to mock data when the Claude API key is not configured.

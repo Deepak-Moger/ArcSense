@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(shopt -s dotglob)",
+      "Bash(mv /d/projects/arcsense-temp/* /d/projects/ArcSense/)",
+      "Bash(npm install:*)",
+      "Bash(npx:*)"
+    ]
+  }
+}

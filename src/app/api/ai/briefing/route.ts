@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateCompletion } from '@/lib/claude';
+import { generateCompletion, hasLiveAIConfigured } from '@/lib/claude';
 import { getBriefingPrompt } from '@/lib/prompts';
 import { mockBriefings } from '@/data/mock-briefings';
 
@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
 
     const mockBriefing = mockBriefings.find((b) => b.topicId === topicId);
 
-    if (!process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY === 'your-api-key-here') {
+    if (!hasLiveAIConfigured()) {
       if (mockBriefing) {
         return NextResponse.json(mockBriefing);
       }

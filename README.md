@@ -30,6 +30,17 @@ ArcSense is demo-friendly out of the box.
 - If `ANTHROPIC_API_KEY` is missing or invalid, API routes return stable mock/fallback responses.
 - This means you can still demo all product flows without live provider dependency.
 
+## Live GenAI Mode (Hackathon)
+
+ArcSense supports real model inference through multiple providers. When any valid provider key is configured, backend routes call the live GenAI API and render real generated output in the UI.
+
+- Supported providers: `Anthropic`, `Groq (Llama)`, `Gemini`
+- Provider selection:
+	- Set `AI_PROVIDER=anthropic|groq|gemini` explicitly, or
+	- Omit `AI_PROVIDER` and ArcSense auto-selects the first configured provider.
+
+Copy `.env.example` to `.env.local` and set at least one provider key.
+
 ## Tech Stack
 
 - **Framework**: Next.js 16 (App Router), React 19, TypeScript 5
@@ -51,6 +62,19 @@ Optional `.env.local`:
 
 ```bash
 ANTHROPIC_API_KEY=sk-ant-...
+```
+
+Or use Groq/Gemini:
+
+```bash
+AI_PROVIDER=groq
+GROQ_API_KEY=gsk_...
+GROQ_MODEL=llama-3.3-70b-versatile
+
+# or
+AI_PROVIDER=gemini
+GEMINI_API_KEY=AIza...
+GEMINI_MODEL=gemini-2.0-flash
 ```
 
 ## Scripts
@@ -110,6 +134,52 @@ src/
 | `/api/ai/story-arc` | `POST` | Story arc analysis |
 | `/api/ai/translate` | `POST` | Vernacular translation with context notes |
 | `/api/ai/sentiment` | `POST` | Sentiment extraction |
+
+## Go Backend (Real-Time + Live GenAI)
+
+ArcSense now includes a production-style Go backend in `backend-go/` for hackathon-grade validation:
+
+- **Step 2 (Live data scraping)**: Scrapes real news websites (Economic Times + Mint) at request time.
+- **Step 3 (Live AI analysis)**: Sends scraped content to **Groq (Llama)** and returns timeline + sentiment.
+
+### Run Go backend
+
+```bash
+cd backend-go
+go mod tidy
+
+# required for live GenAI call
+set GROQ_API_KEY=your_groq_free_tier_key
+
+# optional
+set GROQ_MODEL=llama-3.3-70b-versatile
+set GO_BACKEND_PORT=8080
+
+go run .
+```
+
+### Go backend endpoints
+
+| Route | Method | Purpose |
+|---|---|---|
+| `/health` | `GET` | Liveness check |
+| `/api/v1/news?topic=india&limit=12` | `GET` | Scrape live news links from real sites |
+| `/api/v1/analyze` | `POST` | Scrape + call Groq for timeline/sentiment |
+
+Example request:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/analyze \
+	-H "Content-Type: application/json" \
+	-d '{"topic":"india budget","limit":10}'
+```
+
+This returns:
+
+- scraped articles with source URLs,
+- AI-extracted timeline events,
+- AI sentiment object,
+- raw model output for auditability.
 
 ## Roadmap
 

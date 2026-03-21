@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Newspaper,
   Compass,
@@ -26,6 +26,28 @@ const navLinks = [
 export default function Navbar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [aiMode, setAiMode] = useState<'loading' | 'live' | 'mock'>('loading');
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadStatus() {
+      try {
+        const res = await fetch('/api/ai/provider-status', { cache: 'no-store' });
+        const data = await res.json() as { live?: boolean };
+        if (!mounted) return;
+        setAiMode(data.live ? 'live' : 'mock');
+      } catch {
+        if (!mounted) return;
+        setAiMode('mock');
+      }
+    }
+
+    loadStatus();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <nav className="surface-glass fixed top-0 left-0 right-0 z-50 border-b border-border/80">
@@ -39,7 +61,7 @@ export default function Navbar() {
           </span>
         </Link>
 
-        <div className="hidden md:flex items-center gap-1.5 rounded-2xl border border-border/80 bg-white/80 p-1 shadow-[0_6px_16px_rgba(15,23,42,0.06)]">
+        <div className="hidden md:flex lg:hidden items-center gap-1.5 rounded-2xl border border-border/80 bg-white/80 p-1 shadow-[0_6px_16px_rgba(15,23,42,0.06)]">
           {navLinks.map((link) => {
             const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href));
             const Icon = link.icon;
@@ -58,6 +80,20 @@ export default function Navbar() {
               </Link>
             );
           })}
+        </div>
+
+        <div className="hidden sm:flex items-center">
+          <span
+            className={`rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${
+              aiMode === 'live'
+                ? 'border border-emerald-300 bg-emerald-50 text-emerald-700'
+                : aiMode === 'mock'
+                  ? 'border border-amber-300 bg-amber-50 text-amber-700'
+                  : 'border border-slate-300 bg-slate-50 text-slate-600'
+            }`}
+          >
+            {aiMode === 'live' ? 'Live AI' : aiMode === 'mock' ? 'Mock Mode' : 'Checking...'}
+          </span>
         </div>
 
         <button

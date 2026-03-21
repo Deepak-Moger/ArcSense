@@ -64,9 +64,9 @@ export default function Home() {
         backgroundSize: '32px 32px',
       }} />
 
-      <div className="relative mx-auto max-w-[1280px] px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
+      <div className="relative mx-auto max-w-[1280px] px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
         <motion.div
-          className="mx-auto mb-16 max-w-4xl text-center"
+          className="mx-auto mb-18 max-w-4xl text-center"
           initial={reduceMotion ? false : { opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={reduceMotion ? { duration: 0 } : { duration: 0.55 }}
@@ -74,7 +74,7 @@ export default function Home() {
           <p className="mb-4 inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-indigo-700">
             AI-native intelligence platform
           </p>
-          <h1 className="mb-5 text-5xl font-bold leading-tight tracking-tight text-foreground sm:text-6xl lg:text-7xl">
+          <h1 className="mb-6 text-5xl font-bold leading-[1.05] tracking-tight text-foreground sm:text-6xl lg:text-7xl">
             Read market signals with
             <span className="text-gradient-primary"> speed and clarity</span>
           </h1>

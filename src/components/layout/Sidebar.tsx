@@ -42,14 +42,14 @@ export default function Sidebar() {
               key={link.href}
               href={link.href}
               title={link.label}
-              className={`ui-transition flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium ${
+              className={`ui-transition flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium leading-none ${
                 isActive
                   ? 'bg-[linear-gradient(135deg,#4f46e5_0%,#7c3aed_100%)] text-white shadow-[0_8px_20px_rgba(79,70,229,0.24)]'
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground'
               }`}
             >
               <Icon className="w-5 h-5 shrink-0" />
-              {!collapsed && <span>{link.label}</span>}
+              {!collapsed && <span className="truncate">{link.label}</span>}
             </Link>
           );
         })}

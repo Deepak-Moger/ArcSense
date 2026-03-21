@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateCompletion } from '@/lib/claude';
+import { generateCompletion, hasLiveAIConfigured } from '@/lib/claude';
 import { getSentimentPrompt } from '@/lib/prompts';
 
 export async function POST(request: NextRequest) {
@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Text is required' }, { status: 400 });
     }
 
-    if (!process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY === 'your-api-key-here') {
+    if (!hasLiveAIConfigured()) {
       return NextResponse.json({
         overall: 'positive',
         score: 0.65,

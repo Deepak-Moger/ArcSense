@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import { mockArticles } from '@/data/mock-articles';
+import { useEffect, useState } from 'react';
 import { Article, SupportedLanguage, TranslationResult } from '@/types';
 import LanguageSelector from '@/components/vernacular/LanguageSelector';
 import TranslationView from '@/components/vernacular/TranslationView';
+import LiveDataBadge from '@/components/layout/LiveDataBadge';
 import { Languages, ArrowRight } from 'lucide-react';
+import { fetchLiveArticlesWithSource, LiveDataSource } from '@/lib/news-client';
 
 function isValidTranslationResult(data: unknown): data is TranslationResult {
   if (!data || typeof data !== 'object') return false;
@@ -20,29 +21,63 @@ function isValidTranslationResult(data: unknown): data is TranslationResult {
 }
 
 export default function VernacularPage() {
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [dataSource, setDataSource] = useState<LiveDataSource>('unknown');
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState<SupportedLanguage | null>(null);
   const [translation, setTranslation] = useState<TranslationResult | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadArticles() {
+      const { articles: liveArticles, source } = await fetchLiveArticlesWithSource(12);
+      if (mounted) {
+        setArticles(liveArticles);
+        setDataSource(source);
+      }
+    }
+
+    loadArticles();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const handleTranslate = async () => {
     if (!selectedArticle || !selectedLanguage) return;
 
+    const textToTranslate =
+      selectedArticle.content?.trim() ||
+      selectedArticle.summary?.trim() ||
+      selectedArticle.title?.trim() ||
+      '';
+
+    if (!textToTranslate) {
+      setError('This article has no translatable content. Please select another article.');
+      return;
+    }
+
     setIsTranslating(true);
     setTranslation(null);
+    setError(null);
 
     try {
       const res = await fetch('/api/ai/translate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          text: selectedArticle.content,
+          text: textToTranslate,
           language: selectedLanguage,
           articleTitle: selectedArticle.title,
         }),
       });
 
       if (!res.ok) {
+        setError('Translation failed. Please try a different article or language.');
         setTranslation(null);
         return;
       }
@@ -52,9 +87,11 @@ export default function VernacularPage() {
       if (isValidTranslationResult(data)) {
         setTranslation(data);
       } else {
+        setError('Received an invalid translation response. Please retry.');
         setTranslation(null);
       }
     } catch {
+      setError('Translation service is temporarily unavailable. Please retry in a moment.');
       setTranslation(null);
     } finally {
       setIsTranslating(false);
@@ -69,6 +106,9 @@ export default function VernacularPage() {
           Vernacular Engine
         </h1>
         <p className="text-sm text-muted-foreground">Culturally adapted business news translation</p>
+        <div className="mt-2">
+          <LiveDataBadge source={dataSource} />
+        </div>
       </div>
 
       {/* Article Selection */}
@@ -77,14 +117,15 @@ export default function VernacularPage() {
         <select
           value={selectedArticle?.id || ''}
           onChange={(e) => {
-            const article = mockArticles.find((a) => a.id === e.target.value);
+            const article = articles.find((a) => a.id === e.target.value);
             setSelectedArticle(article || null);
             setTranslation(null);
+            setError(null);
           }}
           className="w-full max-w-xl rounded-xl border border-input bg-white px-3 py-2.5 text-sm text-foreground shadow-[0_4px_12px_rgba(15,23,42,0.06)] focus:border-indigo-400 focus:outline-none"
         >
           <option value="">Choose an article...</option>
-          {mockArticles.map((article) => (
+          {articles.map((article) => (
             <option key={article.id} value={article.id}>
               {article.title}
             </option>
@@ -115,6 +156,10 @@ export default function VernacularPage() {
           </>
         )}
       </button>
+
+      {error && (
+        <p className="mb-6 text-sm text-rose-600">{error}</p>
+      )}
 
       {/* Translation View */}
       {(translation || isTranslating) && selectedArticle && (

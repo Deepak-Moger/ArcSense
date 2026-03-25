@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import { mockArticles } from '@/data/mock-articles';
+import { useEffect, useState } from 'react';
 import { Article, VideoScript } from '@/types';
 import StoryboardPlayer from '@/components/video/StoryboardPlayer';
+import LiveDataBadge from '@/components/layout/LiveDataBadge';
 import { Video, Sparkles } from 'lucide-react';
+import { fetchLiveArticlesWithSource, LiveDataSource } from '@/lib/news-client';
 
 function isValidVideoScript(data: unknown): data is VideoScript {
   if (typeof data !== 'object' || data === null) return false;
@@ -26,11 +27,31 @@ function isValidVideoScript(data: unknown): data is VideoScript {
 }
 
 export default function VideoStudioPage() {
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [dataSource, setDataSource] = useState<LiveDataSource>('unknown');
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [videoScript, setVideoScript] = useState<VideoScript | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadArticles() {
+      const { articles: liveArticles, source } = await fetchLiveArticlesWithSource(12);
+      if (mounted) {
+        setArticles(liveArticles);
+        setDataSource(source);
+      }
+    }
+
+    loadArticles();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const generateVideo = async (article: Article) => {
     setSelectedArticle(article);
@@ -74,10 +95,13 @@ export default function VideoStudioPage() {
             AI Video Studio
           </h1>
           <p className="mt-1 text-xs text-muted-foreground">Select an article to generate a video</p>
+          <div className="mt-2">
+            <LiveDataBadge source={dataSource} />
+          </div>
         </div>
 
         <div className="p-2 space-y-1 max-h-60 lg:max-h-none overflow-y-auto">
-          {mockArticles.slice(0, 12).map((article) => (
+          {articles.map((article) => (
             <button
               key={article.id}
               onClick={() => generateVideo(article)}

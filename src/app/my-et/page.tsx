@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { mockArticles } from '@/data/mock-articles';
+import { useState, useCallback, useEffect } from 'react';
 import { personas } from '@/data/personas';
-import { PersonaType, AdaptedArticle } from '@/types';
+import { PersonaType, AdaptedArticle, Article } from '@/types';
 import PersonaSelector from '@/components/news/PersonaSelector';
 import ArticleList from '@/components/news/ArticleList';
+import LiveDataBadge from '@/components/layout/LiveDataBadge';
+import { fetchLiveArticlesWithSource, LiveDataSource } from '@/lib/news-client';
 
 function normalizeAdaptedFields(data: unknown) {
   const payload = (typeof data === 'object' && data !== null ? data : {}) as Record<string, unknown>;
@@ -37,13 +38,33 @@ export default function MyETPage() {
   const [selectedPersona, setSelectedPersona] = useState<PersonaType | null>(null);
   const [showSelector, setShowSelector] = useState(true);
   const [adaptedArticles, setAdaptedArticles] = useState<Record<string, AdaptedArticle>>({});
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [dataSource, setDataSource] = useState<LiveDataSource>('unknown');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadArticles() {
+      const { articles: liveArticles, source } = await fetchLiveArticlesWithSource(9);
+      if (mounted) {
+        setArticles(liveArticles);
+        setDataSource(source);
+      }
+    }
+
+    loadArticles();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const adaptArticles = useCallback(async (persona: PersonaType) => {
     setLoading(true);
     const adapted: Record<string, AdaptedArticle> = {};
 
-    for (const article of mockArticles.slice(0, 9)) {
+    for (const article of articles) {
       try {
         const res = await fetch('/api/ai/summarize', {
           method: 'POST',
@@ -70,7 +91,7 @@ export default function MyETPage() {
 
     setAdaptedArticles(adapted);
     setLoading(false);
-  }, []);
+  }, [articles]);
 
   const handlePersonaSelect = (persona: PersonaType) => {
     setSelectedPersona(persona);
@@ -88,6 +109,9 @@ export default function MyETPage() {
         <div>
           <h1 className="text-3xl font-bold text-foreground">My ET</h1>
           <p className="text-sm text-muted-foreground">Personalized newsroom adapted to your perspective</p>
+          <div className="mt-2">
+            <LiveDataBadge source={dataSource} />
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -129,7 +153,7 @@ export default function MyETPage() {
 
       {!loading && (
         <ArticleList
-          articles={mockArticles.slice(0, 9)}
+          articles={articles}
           persona={selectedPersona}
           adaptedArticles={adaptedArticles}
         />

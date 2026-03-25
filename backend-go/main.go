@@ -11,6 +11,7 @@ import (
 
 	"arcsense/backend/internal/ai"
 	"arcsense/backend/internal/news"
+
 	"github.com/joho/godotenv"
 )
 
@@ -20,12 +21,12 @@ type analyzeRequest struct {
 }
 
 type analyzeResponse struct {
-	Topic          string            `json:"topic"`
-	FetchedAt      string            `json:"fetchedAt"`
-	Articles       []news.Item       `json:"articles"`
+	Topic          string             `json:"topic"`
+	FetchedAt      string             `json:"fetchedAt"`
+	Articles       []news.Item        `json:"articles"`
 	Timeline       []ai.TimelineEvent `json:"timeline"`
-	Sentiment      ai.Sentiment      `json:"sentiment"`
-	ModelOutputRaw string            `json:"modelOutputRaw"`
+	Sentiment      ai.Sentiment       `json:"sentiment"`
+	ModelOutputRaw string             `json:"modelOutputRaw"`
 }
 
 func main() {

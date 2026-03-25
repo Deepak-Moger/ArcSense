@@ -74,9 +74,9 @@ export default function Home() {
           <p className="mb-4 inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-indigo-700">
             AI-native intelligence platform
           </p>
-          <h1 className="mb-6 text-5xl font-bold leading-[1.05] tracking-tight text-foreground sm:text-6xl lg:text-7xl">
-            Read market signals with
-            <span className="text-gradient-primary"> speed and clarity</span>
+          <h1 className="mx-auto mb-6 max-w-[16ch] text-balance text-[clamp(2.6rem,6vw,5.25rem)] font-bold leading-[1.02] tracking-[-0.03em] text-foreground">
+            Read market signals with{' '}
+            <span className="text-gradient-primary">speed and clarity</span>
           </h1>
           <p className="mx-auto mb-2 max-w-2xl text-xl font-medium text-slate-700">ArcSense</p>
           <p className="mx-auto max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateCompletion, hasLiveAIConfigured } from '@/lib/claude';
+import { generateCompletion, hasLiveAIConfigured } from '@/lib/ai';
 import { getStoryArcPrompt } from '@/lib/prompts';
 import { storyArcs } from '@/data/mock-story-arcs';
 

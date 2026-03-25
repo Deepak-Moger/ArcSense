@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getActiveAIProvider, hasLiveAIConfigured } from '@/lib/claude';
+import { getActiveAIProvider, hasLiveAIConfigured } from '@/lib/ai';
 
 export async function GET() {
   const provider = getActiveAIProvider();

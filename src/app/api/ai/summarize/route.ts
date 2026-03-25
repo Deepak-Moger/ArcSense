@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!hasLiveAIConfigured()) {
-      return NextResponse.json(getMockAdaptation(persona, article.title));
+      return NextResponse.json(getMockAdaptation(persona));
     }
 
     const prompt = getPersonaSummaryPrompt(article.title, article.content, persona);
@@ -22,14 +22,14 @@ export async function POST(request: NextRequest) {
       const parsed = JSON.parse(result);
       return NextResponse.json(parsed);
     } catch {
-      return NextResponse.json(getMockAdaptation(persona, article.title));
+      return NextResponse.json(getMockAdaptation(persona));
     }
   } catch {
     return NextResponse.json({ error: 'Failed to generate summary' }, { status: 500 });
   }
 }
 
-function getMockAdaptation(persona: PersonaType, title: string) {
+function getMockAdaptation(persona: PersonaType) {
   const adaptations: Record<PersonaType, object> = {
     investor: {
       personaInsights: `This development has significant implications for portfolio positioning. Market participants should watch for sector rotation opportunities and evaluate exposure to affected stocks.`,

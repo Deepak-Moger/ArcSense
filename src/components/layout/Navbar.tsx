@@ -27,6 +27,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [aiMode, setAiMode] = useState<'loading' | 'live' | 'mock'>('loading');
+  const [providerLabel, setProviderLabel] = useState<string>('');
 
   useEffect(() => {
     let mounted = true;
@@ -34,9 +35,12 @@ export default function Navbar() {
     async function loadStatus() {
       try {
         const res = await fetch('/api/ai/provider-status', { cache: 'no-store' });
-        const data = await res.json() as { live?: boolean };
+        const data = (await res.json()) as { live?: boolean; provider?: string; model?: string | null };
         if (!mounted) return;
         setAiMode(data.live ? 'live' : 'mock');
+        if (data.live && data.provider) {
+          setProviderLabel(data.model ? `${data.provider} · ${data.model.split('-')[0]}` : data.provider);
+        }
       } catch {
         if (!mounted) return;
         setAiMode('mock');
@@ -92,7 +96,13 @@ export default function Navbar() {
                   : 'border border-slate-300 bg-slate-50 text-slate-600'
             }`}
           >
-            {aiMode === 'live' ? 'Live AI' : aiMode === 'mock' ? 'Mock Mode' : 'Checking...'}
+            {aiMode === 'live'
+              ? providerLabel
+                ? `Live · ${providerLabel}`
+                : 'Live AI'
+              : aiMode === 'mock'
+                ? 'Mock Mode'
+                : 'Checking...'}
           </span>
         </div>
 

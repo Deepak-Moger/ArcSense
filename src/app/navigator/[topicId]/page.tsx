@@ -2,7 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import { useState, useEffect, useMemo } from 'react';
-import { Briefing, Article } from '@/types';
+import { Briefing, BriefingSection, Article } from '@/types';
 import BriefingView from '@/components/navigator/BriefingView';
 import ChatInterface from '@/components/navigator/ChatInterface';
 import LiveDataBadge from '@/components/layout/LiveDataBadge';
@@ -31,7 +31,7 @@ export default function BriefingPage() {
   const [dataSource, setDataSource] = useState<LiveDataSource>('unknown');
   const [loading, setLoading] = useState(true);
 
-  const fallbackBriefing = useMemo(
+  const fallbackBriefing = useMemo<Briefing>(
     () => ({
       id: `brief-local-fallback-${Date.now()}`,
       topicId,
@@ -62,7 +62,7 @@ export default function BriefingPage() {
           type: 'whats-next',
           content: 'Track management guidance, policy implementation data, and short-term volatility.',
         },
-      ],
+      ] satisfies BriefingSection[],
       generatedAt: new Date().toISOString(),
       articleIds: [],
     }),

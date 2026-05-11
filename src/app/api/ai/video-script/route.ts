@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateCompletion, hasLiveAIConfigured } from '@/lib/ai';
+import { generateText, Output } from 'ai';
+import { chatModel, hasLiveAIConfigured, DEFAULT_SYSTEM_PROMPT } from '@/lib/ai';
 import { getVideoScriptPrompt } from '@/lib/prompts';
+import { videoScriptSchema } from '@/lib/schemas';
 import { VideoSlide } from '@/types';
+
+export const maxDuration = 45;
 
 export async function POST(request: NextRequest) {
   try {
     const { article } = await request.json();
-
     if (!article) {
       return NextResponse.json({ error: 'Article is required' }, { status: 400 });
     }
@@ -15,28 +18,53 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(getMockVideoScript(article.id, article.title, article.content));
     }
 
-    const prompt = getVideoScriptPrompt(article.title, article.content);
-    const result = await generateCompletion(prompt);
+    const { experimental_output } = await generateText({
+      model: chatModel,
+      system: DEFAULT_SYSTEM_PROMPT,
+      prompt: getVideoScriptPrompt(article.title, article.content),
+      experimental_output: Output.object({ schema: videoScriptSchema }),
+    });
 
-    try {
-      const parsed = JSON.parse(result);
-      const slides: VideoSlide[] = parsed.slides.map((s: VideoSlide, i: number) => ({
-        ...s,
+    const slides: VideoSlide[] = experimental_output.slides.map((s, i) => {
+      const slide: VideoSlide = {
         id: `slide-${i}`,
-      }));
-      const totalDuration = slides.reduce((sum: number, s: VideoSlide) => sum + s.duration, 0);
+        type: s.type,
+        narration: s.narration,
+        displayText: s.displayText,
+        duration: s.duration,
+      };
+      if (s.dataPoints) {
+        slide.dataPoints = s.dataPoints.map((d) => ({
+          label: d.label,
+          value: d.value,
+          ...(d.color ? { color: d.color } : {}),
+        }));
+      }
+      if (s.quote) slide.quote = s.quote;
+      return slide;
+    });
 
-      return NextResponse.json({
-        id: `video-${Date.now()}`,
-        articleId: article.id,
-        title: article.title,
-        slides,
-        totalDuration,
-      });
+    const totalDuration = slides.reduce((sum, s) => sum + s.duration, 0);
+
+    return NextResponse.json({
+      id: `video-${Date.now()}`,
+      articleId: article.id,
+      title: article.title,
+      slides,
+      totalDuration,
+    });
+  } catch (error) {
+    console.error('[video-script] error:', error);
+    try {
+      const { article } = await request.clone().json();
+      if (article) {
+        return NextResponse.json(
+          getMockVideoScript(article.id, article.title, article.content)
+        );
+      }
     } catch {
-      return NextResponse.json(getMockVideoScript(article.id, article.title, article.content));
+      // ignore
     }
-  } catch {
     return NextResponse.json({ error: 'Failed to generate video script' }, { status: 500 });
   }
 }
@@ -47,21 +75,22 @@ function getMockVideoScript(articleId: string, title: string, content: string) {
     {
       id: 'slide-0',
       type: 'title',
-      narration: `Breaking news from the Economic Times. ${firstSentence}`,
+      narration: `Breaking news from ArcSense. ${firstSentence}`,
       displayText: title,
       duration: 12,
     },
     {
       id: 'slide-1',
       type: 'narration',
-      narration: 'Let\'s break down the key developments and what they mean for you.',
+      narration: "Let's break down the key developments and what they mean for you.",
       displayText: 'Key Developments',
       duration: 10,
     },
     {
       id: 'slide-2',
       type: 'data',
-      narration: 'Here are the numbers that matter. The data tells a compelling story of growth and transformation across key metrics.',
+      narration:
+        'Here are the numbers that matter. The data tells a compelling story of growth and transformation across key metrics.',
       displayText: 'Key Metrics',
       duration: 15,
       dataPoints: [
@@ -78,21 +107,22 @@ function getMockVideoScript(articleId: string, title: string, content: string) {
       displayText: 'Expert Analysis',
       duration: 12,
       quote: {
-        text: 'This development marks a significant inflection point for the Indian economy and could reshape the competitive landscape.',
+        text: 'This marks a significant inflection point for the Indian economy and could reshape the competitive landscape.',
         author: 'Industry Analyst, Goldman Sachs',
       },
     },
     {
       id: 'slide-4',
       type: 'narration',
-      narration: 'The implications extend beyond the immediate sector, with ripple effects expected across banking, technology, and consumer markets.',
+      narration:
+        'The implications extend beyond the immediate sector, with ripple effects expected across banking, technology, and consumer markets.',
       displayText: 'Broader Implications',
       duration: 12,
     },
     {
       id: 'slide-5',
       type: 'conclusion',
-      narration: 'Stay tuned for more updates as this story develops. This has been your ArcSense AI news briefing.',
+      narration: 'Stay tuned for more updates as this story develops. This was your ArcSense AI briefing.',
       displayText: 'What to Watch Next',
       duration: 10,
     },

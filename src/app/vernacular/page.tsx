@@ -5,12 +5,12 @@ import { Article, SupportedLanguage, TranslationResult } from '@/types';
 import LanguageSelector from '@/components/vernacular/LanguageSelector';
 import TranslationView from '@/components/vernacular/TranslationView';
 import LiveDataBadge from '@/components/layout/LiveDataBadge';
-import { Languages, ArrowRight } from 'lucide-react';
+import PageHeader from '@/components/layout/PageHeader';
+import { ArrowRight } from 'lucide-react';
 import { fetchLiveArticlesWithSource, LiveDataSource } from '@/lib/news-client';
 
 function isValidTranslationResult(data: unknown): data is TranslationResult {
   if (!data || typeof data !== 'object') return false;
-
   const candidate = data as Partial<TranslationResult>;
   return (
     typeof candidate.translatedText === 'string' &&
@@ -31,7 +31,6 @@ export default function VernacularPage() {
 
   useEffect(() => {
     let mounted = true;
-
     async function loadArticles() {
       const { articles: liveArticles, source } = await fetchLiveArticlesWithSource(12);
       if (mounted) {
@@ -39,9 +38,7 @@ export default function VernacularPage() {
         setDataSource(source);
       }
     }
-
     loadArticles();
-
     return () => {
       mounted = false;
     };
@@ -78,98 +75,103 @@ export default function VernacularPage() {
 
       if (!res.ok) {
         setError('Translation failed. Please try a different article or language.');
-        setTranslation(null);
         return;
       }
 
       const data = await res.json();
-
       if (isValidTranslationResult(data)) {
         setTranslation(data);
       } else {
         setError('Received an invalid translation response. Please retry.');
-        setTranslation(null);
       }
     } catch {
       setError('Translation service is temporarily unavailable. Please retry in a moment.');
-      setTranslation(null);
     } finally {
       setIsTranslating(false);
     }
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-          <Languages className="w-6 h-6 text-indigo-600" />
-          Vernacular Engine
-        </h1>
-        <p className="text-sm text-muted-foreground">Culturally adapted business news translation</p>
-        <div className="mt-2">
-          <LiveDataBadge source={dataSource} />
+    <div>
+      <PageHeader
+        eyebrow="05 / Vernacular Engine"
+        title="Context-aware translation, not just translation."
+        description="Hindi, Tamil, Telugu and Bengali — with the cultural adaptations and editor's notes that wires never include."
+        meta={<LiveDataBadge source={dataSource} />}
+      />
+
+      <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-8 lg:py-14">
+        <div className="grid grid-cols-1 gap-6 rounded-xl border border-border bg-card p-6 shadow-paper sm:p-8 lg:grid-cols-[2fr_1fr] lg:items-end">
+          {/* Article picker */}
+          <div>
+            <label className="eyebrow block">Step 01 — Article</label>
+            <select
+              value={selectedArticle?.id || ''}
+              onChange={(e) => {
+                const article = articles.find((a) => a.id === e.target.value);
+                setSelectedArticle(article || null);
+                setTranslation(null);
+                setError(null);
+              }}
+              className="ui-transition mt-3 w-full rounded-lg border border-input bg-background px-3 py-3 text-[14px] text-foreground focus:border-primary focus:outline-none"
+            >
+              <option value="">Choose an article…</option>
+              {articles.map((article) => (
+                <option key={article.id} value={article.id}>
+                  {article.title}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Action */}
+          <div className="flex flex-col gap-3">
+            <label className="eyebrow block">Step 03 — Translate</label>
+            <button
+              onClick={handleTranslate}
+              disabled={!selectedArticle || !selectedLanguage || isTranslating}
+              className="ui-transition inline-flex items-center justify-center gap-2 rounded-lg bg-foreground px-5 py-3 text-[13.5px] font-medium text-background hover:bg-foreground/90 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {isTranslating ? (
+                <>
+                  <div className="h-3 w-3 animate-spin rounded-full border border-background/40 border-t-background" />
+                  Translating
+                </>
+              ) : (
+                <>
+                  Translate
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Language picker (full width below) */}
+          <div className="lg:col-span-2">
+            <label className="eyebrow block">Step 02 — Target language</label>
+            <div className="mt-3">
+              <LanguageSelector selected={selectedLanguage} onSelect={setSelectedLanguage} />
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* Article Selection */}
-      <div className="mb-6">
-        <label className="text-sm font-medium text-foreground block mb-2">Select Article</label>
-        <select
-          value={selectedArticle?.id || ''}
-          onChange={(e) => {
-            const article = articles.find((a) => a.id === e.target.value);
-            setSelectedArticle(article || null);
-            setTranslation(null);
-            setError(null);
-          }}
-          className="w-full max-w-xl rounded-xl border border-input bg-white px-3 py-2.5 text-sm text-foreground shadow-[0_4px_12px_rgba(15,23,42,0.06)] focus:border-indigo-400 focus:outline-none"
-        >
-          <option value="">Choose an article...</option>
-          {articles.map((article) => (
-            <option key={article.id} value={article.id}>
-              {article.title}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Language Selection */}
-      <div className="mb-6">
-        <label className="text-sm font-medium text-foreground block mb-2">Target Language</label>
-        <LanguageSelector selected={selectedLanguage} onSelect={setSelectedLanguage} />
-      </div>
-
-      {/* Translate Button */}
-      <button
-        onClick={handleTranslate}
-        disabled={!selectedArticle || !selectedLanguage || isTranslating}
-        className="ui-transition mb-8 inline-flex items-center gap-2 rounded-xl bg-[linear-gradient(135deg,#4f46e5_0%,#7c3aed_100%)] px-5 py-2.5 text-sm font-medium text-white shadow-[0_8px_20px_rgba(79,70,229,0.24)] disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {isTranslating ? (
-          <>
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            Translating...
-          </>
-        ) : (
-          <>
-            Translate <ArrowRight className="w-4 h-4" />
-          </>
+        {error && (
+          <p className="mt-6 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-[13px] text-destructive">
+            {error}
+          </p>
         )}
-      </button>
 
-      {error && (
-        <p className="mb-6 text-sm text-rose-600">{error}</p>
-      )}
-
-      {/* Translation View */}
-      {(translation || isTranslating) && selectedArticle && (
-        <TranslationView
-          translation={translation}
-          loading={isTranslating}
-          originalTitle={selectedArticle.title}
-          originalContent={selectedArticle.content}
-        />
-      )}
+        {(translation || isTranslating) && selectedArticle && (
+          <div className="mt-8">
+            <TranslationView
+              translation={translation}
+              loading={isTranslating}
+              originalTitle={selectedArticle.title}
+              originalContent={selectedArticle.content}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

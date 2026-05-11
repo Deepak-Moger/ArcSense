@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Article, VideoScript } from '@/types';
 import StoryboardPlayer from '@/components/video/StoryboardPlayer';
 import LiveDataBadge from '@/components/layout/LiveDataBadge';
-import { Video, Sparkles } from 'lucide-react';
+import { Sparkles, Film } from 'lucide-react';
 import { fetchLiveArticlesWithSource, LiveDataSource } from '@/lib/news-client';
 
 function isValidVideoScript(data: unknown): data is VideoScript {
@@ -17,13 +17,14 @@ function isValidVideoScript(data: unknown): data is VideoScript {
   if (typeof script.totalDuration !== 'number') return false;
   if (!Array.isArray(script.slides) || script.slides.length === 0) return false;
 
-  return script.slides.every((slide) => (
-    typeof slide?.id === 'string'
-    && typeof slide?.type === 'string'
-    && typeof slide?.narration === 'string'
-    && typeof slide?.displayText === 'string'
-    && typeof slide?.duration === 'number'
-  ));
+  return script.slides.every(
+    (slide) =>
+      typeof slide?.id === 'string' &&
+      typeof slide?.type === 'string' &&
+      typeof slide?.narration === 'string' &&
+      typeof slide?.displayText === 'string' &&
+      typeof slide?.duration === 'number',
+  );
 }
 
 export default function VideoStudioPage() {
@@ -37,7 +38,6 @@ export default function VideoStudioPage() {
 
   useEffect(() => {
     let mounted = true;
-
     async function loadArticles() {
       const { articles: liveArticles, source } = await fetchLiveArticlesWithSource(12);
       if (mounted) {
@@ -45,9 +45,7 @@ export default function VideoStudioPage() {
         setDataSource(source);
       }
     }
-
     loadArticles();
-
     return () => {
       mounted = false;
     };
@@ -65,14 +63,10 @@ export default function VideoStudioPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ article }),
       });
-      if (!res.ok) {
-        throw new Error(`Video script request failed (${res.status})`);
-      }
+      if (!res.ok) throw new Error(`Video script request failed (${res.status})`);
 
       const data = await res.json();
-      if (!isValidVideoScript(data)) {
-        throw new Error('Invalid video script payload');
-      }
+      if (!isValidVideoScript(data)) throw new Error('Invalid video script payload');
 
       setVideoScript(data);
       setIsPlaying(true);
@@ -86,57 +80,92 @@ export default function VideoStudioPage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-4.5rem)] flex-col lg:flex-row">
-      {/* Article picker sidebar */}
-      <div className="overflow-y-auto border-b border-border/80 lg:w-80 lg:border-r lg:border-b-0">
-        <div className="sticky top-0 z-10 border-b border-border/80 bg-background/95 p-4 backdrop-blur-sm">
-          <h1 className="flex items-center gap-2 text-lg font-bold text-foreground">
-            <Video className="w-5 h-5 text-indigo-600" />
-            AI Video Studio
+    <div className="flex h-[calc(100vh-4rem)] flex-col lg:flex-row">
+      {/* Article picker rail */}
+      <aside className="overflow-hidden border-b border-border bg-card lg:w-[340px] lg:border-b-0 lg:border-r">
+        <div className="border-b border-border bg-background px-5 py-5">
+          <p className="eyebrow">03 / AI Video Studio</p>
+          <h1 className="mt-3 font-display text-[1.6rem] leading-tight text-foreground">
+            Pick an article. Get a storyboard.
           </h1>
-          <p className="mt-1 text-xs text-muted-foreground">Select an article to generate a video</p>
-          <div className="mt-2">
+          <div className="mt-3">
             <LiveDataBadge source={dataSource} />
           </div>
         </div>
 
-        <div className="p-2 space-y-1 max-h-60 lg:max-h-none overflow-y-auto">
-          {articles.map((article) => (
-            <button
-              key={article.id}
-              onClick={() => generateVideo(article)}
-              disabled={isGenerating}
-              className={`ui-transition w-full text-left p-3 rounded-lg text-sm ${
-                selectedArticle?.id === article.id
-                  ? 'border border-indigo-300 bg-indigo-50'
-                  : 'border border-transparent bg-white hover:border-border hover:bg-muted/60'
-              } disabled:opacity-50`}
-            >
-              <p className="text-xs font-medium text-foreground line-clamp-2">{article.title}</p>
-              <p className="text-xs text-slate-500 mt-1">{article.category} &middot; {article.date}</p>
-            </button>
-          ))}
+        <div className="max-h-72 overflow-y-auto p-3 lg:max-h-none">
+          <p className="px-2 pb-2 font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
+            Queue · {articles.length}
+          </p>
+          <div className="space-y-1.5">
+            {articles.map((article, i) => {
+              const active = selectedArticle?.id === article.id;
+              return (
+                <button
+                  key={article.id}
+                  onClick={() => generateVideo(article)}
+                  disabled={isGenerating}
+                  className={`ui-transition w-full rounded-lg border px-3.5 py-3 text-left disabled:opacity-50 ${
+                    active
+                      ? 'border-foreground bg-secondary'
+                      : 'border-transparent bg-background hover:border-border hover:bg-secondary/60'
+                  }`}
+                >
+                  <div className="mb-1.5 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                    <span className={active ? 'text-primary' : ''}>{article.category}</span>
+                    <span>{String(i + 1).padStart(2, '0')}</span>
+                  </div>
+                  <p className="line-clamp-2 text-[13px] leading-snug text-foreground">
+                    {article.title}
+                  </p>
+                  <p className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                    {article.date}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      </aside>
 
-      {/* Player area */}
-      <div className="relative flex flex-1 items-center justify-center bg-[radial-gradient(circle_at_20%_10%,rgba(79,70,229,0.08),transparent_45%),#f8fafc]">
+      {/* Player canvas */}
+      <section className="bg-grid-soft relative flex flex-1 items-center justify-center bg-background p-6 sm:p-10">
         {isGenerating && (
           <div className="text-center">
-            <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-3 border-indigo-500 border-t-transparent" />
-            <p className="text-sm text-muted-foreground">Generating video script...</p>
-            <p className="mt-1 text-xs text-slate-500">AI is creating your storyboard</p>
+            <div className="mx-auto mb-5 h-9 w-9 animate-spin rounded-full border border-foreground/20 border-t-foreground" />
+            <p className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
+              Generating storyboard
+            </p>
+            <p className="mt-2 font-display text-xl text-foreground">
+              AI is composing animated slides
+            </p>
           </div>
         )}
 
         {!isGenerating && !videoScript && (
-          <div className="text-center px-4">
-            <Sparkles className="mx-auto mb-4 h-12 w-12 text-indigo-300" />
-            <p className="text-sm text-muted-foreground">Select an article to generate a video</p>
-            <p className="mt-1 text-xs text-slate-500">
-              AI will create animated slides with data visualizations and narration
+          <div className="max-w-md text-center">
+            <span className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-md border border-border bg-card text-primary">
+              <Film className="h-5 w-5" />
+            </span>
+            <p className="eyebrow">Storyboard canvas</p>
+            <p className="mt-3 font-display text-2xl leading-tight text-foreground">
+              Select an article to generate a broadcast-ready video script.
             </p>
-            {error && <p className="mt-3 text-xs text-rose-600">{error}</p>}
+            <p className="mt-4 text-[13.5px] leading-relaxed text-muted-foreground">
+              AI will create animated slides with data overlays and narration. Typical run takes
+              ten to twenty seconds.
+            </p>
+
+            {error && (
+              <p className="mt-5 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-[12.5px] text-destructive">
+                {error}
+              </p>
+            )}
+
+            <p className="mt-6 inline-flex items-center gap-1.5 font-mono text-[10.5px] uppercase tracking-[0.14em] text-muted-foreground">
+              <Sparkles className="h-3 w-3 text-primary" />
+              Auto-storyboard · Powered by ArcSense AI
+            </p>
           </div>
         )}
 
@@ -147,7 +176,7 @@ export default function VideoStudioPage() {
             onPlayPause={() => setIsPlaying(!isPlaying)}
           />
         )}
-      </div>
+      </section>
     </div>
   );
 }

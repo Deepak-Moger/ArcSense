@@ -1,24 +1,40 @@
-import type { Metadata } from "next";
-import { DM_Sans, Inter } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Inter, Instrument_Serif, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
-import Sidebar from "@/components/layout/Sidebar";
 
 const inter = Inter({
   variable: "--font-sans",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
-const dmSans = DM_Sans({
-  variable: "--font-secondary",
+const instrumentSerif = Instrument_Serif({
+  variable: "--font-serif",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400"],
+  style: ["normal", "italic"],
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-mono",
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "ArcSense — AI-Native News Experience",
-  description: "Business news reimagined with 5 AI-powered features. Personalized newsrooms, interactive briefings, AI video studio, story arc tracking, and vernacular translation.",
+  title: "ArcSense — Decision-Grade Business Intelligence",
+  description:
+    "An AI-native newsroom for investors, founders, analysts and journalists. Five workflows turn the day's market signal into decision-ready intelligence.",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#f5f1e8",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
@@ -29,17 +45,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${dmSans.variable} h-full antialiased`}
+      className={`${inter.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} h-full antialiased bg-background`}
       suppressHydrationWarning
     >
       <body className="min-h-full font-sans text-foreground" suppressHydrationWarning>
         <Navbar />
-        <div className="flex pt-[4.5rem]">
-          <Sidebar />
-          <main className="min-w-0 flex-1 min-h-[calc(100vh-4.5rem)] lg:ml-64">
-            {children}
-          </main>
-        </div>
+        <main className="min-w-0 pt-16">{children}</main>
       </body>
     </html>
   );

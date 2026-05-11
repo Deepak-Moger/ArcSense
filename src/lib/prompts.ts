@@ -1,151 +1,69 @@
 import { PersonaType, SupportedLanguage } from '@/types';
 
-export function getPersonaSummaryPrompt(articleTitle: string, articleContent: string, persona: PersonaType): string {
+/**
+ * These prompts only contain the *analytical* instructions. JSON shape is
+ * enforced separately via zod schemas + `Output.object()` in the route
+ * handlers, so we no longer hand-roll JSON skeletons here.
+ */
+
+export function getPersonaSummaryPrompt(
+  articleTitle: string,
+  articleContent: string,
+  persona: PersonaType
+): string {
   const personaInstructions: Record<PersonaType, string> = {
-    investor: `Analyze this article from an INVESTOR perspective. Provide:
-- personaInsights: 2-3 sentences on market impact and investment implications
-- highlights: Array of 3-4 key points about stock movements, sector impact, portfolio relevance
-- relevanceScore: 1-10 score for portfolio relevance
-Focus on: stock mentions, market impact, sector trends, valuation implications.`,
-    founder: `Analyze this article from a STARTUP FOUNDER perspective. Provide:
-- personaInsights: 2-3 sentences on competitive intelligence and business opportunities
-- highlights: Array of 3-4 key strategic takeaways
-- actionItems: Array of 2-3 specific actions a founder should consider
-Focus on: competitive landscape, funding implications, regulatory changes, market opportunities.`,
-    student: `Analyze this article for a STUDENT who is learning about business. Provide:
-- personaInsights: 2-3 sentences explaining the significance in simple terms
-- highlights: Array of 3-4 key concepts explained simply
-- explainerNotes: Array of 2-3 term definitions or concept explanations
-Focus on: simplifying jargon, explaining context, connecting to broader economic concepts.`,
-    journalist: `Analyze this article from a JOURNALIST perspective. Provide:
-- personaInsights: 2-3 sentences on story angles and source quality
-- highlights: Array of 3-4 key facts worth investigating further
-- sourceAnalysis: Assessment of sources cited and potential angles not covered
-Focus on: source credibility, missing perspectives, follow-up story angles, fact-check points.`,
+    investor: `Analyze the article from an INVESTOR perspective. Focus on stock mentions, market impact, sector trends, and valuation implications. Provide 2-3 sentences of personaInsights, 3-4 highlights about stock movements / sector impact / portfolio relevance, and a 1-10 relevanceScore for portfolio relevance.`,
+    founder: `Analyze the article from a STARTUP FOUNDER perspective. Focus on the competitive landscape, funding implications, regulatory shifts, and market opportunities. Provide 2-3 sentences of personaInsights, 3-4 strategic highlights, and 2-3 concrete actionItems a founder should consider.`,
+    student: `Analyze the article for a STUDENT learning about business. Explain in simple terms. Provide 2-3 sentences of personaInsights, 3-4 highlights translating key concepts into plain language, and 2-3 explainerNotes that define jargon or connect the story to broader economic concepts.`,
+    journalist: `Analyze the article from a JOURNALIST perspective. Focus on source credibility, missing angles, follow-up opportunities, and verification points. Provide 2-3 sentences of personaInsights, 3-4 highlights of facts worth investigating, and a sourceAnalysis paragraph evaluating cited sources and missing perspectives.`,
   };
 
   return `Article Title: ${articleTitle}
 
-Article Content: ${articleContent}
+Article Content:
+${articleContent}
 
 ${personaInstructions[persona]}
 
-Respond in JSON format:
-{
-  "personaInsights": "string",
-  "highlights": ["string"],
-  ${persona === 'investor' ? '"relevanceScore": number,' : ''}
-  ${persona === 'founder' ? '"actionItems": ["string"],' : ''}
-  ${persona === 'student' ? '"explainerNotes": ["string"],' : ''}
-  ${persona === 'journalist' ? '"sourceAnalysis": "string",' : ''}
-}`;
+Only include the persona-specific optional field (relevanceScore / actionItems / explainerNotes / sourceAnalysis) that matches the persona above. Set the other optional fields to null.`;
 }
 
 export function getBriefingPrompt(articleSummaries: string, topic: string): string {
-  return `Generate a comprehensive news briefing on the topic: "${topic}"
+  return `Generate a comprehensive news briefing on the topic: "${topic}".
 
-Based on these article summaries:
+Source material:
 ${articleSummaries}
 
-Create a structured briefing with exactly 5 sections. Respond in JSON format:
-{
-  "sections": [
-    { "title": "Key Highlights", "type": "highlights", "content": "Bullet-point summary of the most important developments" },
-    { "title": "Deep Dive", "type": "deep-dive", "content": "Detailed analysis of the core issues" },
-    { "title": "Sector Impact", "type": "sector-impact", "content": "How different sectors/industries are affected" },
-    { "title": "Expert Takes", "type": "expert-takes", "content": "Analysis from different expert perspectives" },
-    { "title": "What's Next", "type": "whats-next", "content": "Forward-looking analysis and things to watch" }
-  ]
-}
+Produce exactly 5 sections in this order with these types:
+1. Key Highlights (type: "highlights") — bullet-point summary of the most important developments.
+2. Deep Dive (type: "deep-dive") — detailed analysis of the core issues.
+3. Sector Impact (type: "sector-impact") — how different sectors / industries are affected.
+4. Expert Takes (type: "expert-takes") — synthesis from different expert perspectives.
+5. What's Next (type: "whats-next") — forward-looking analysis and signals to watch.
 
-Make each section 150-300 words. Use markdown formatting within content (bold, bullet points).`;
-}
-
-export function getChatPrompt(briefingContext: string, question: string, history: string): string {
-  return `You are an AI news analyst discussing a briefing. Use the briefing context to answer questions accurately and insightfully.
-
-BRIEFING CONTEXT:
-${briefingContext}
-
-CONVERSATION HISTORY:
-${history}
-
-USER QUESTION: ${question}
-
-Provide a clear, concise answer (2-4 paragraphs). Reference specific facts from the briefing. If the question is outside the briefing scope, say so but offer related insights.`;
+Each section's content should be 150-300 words. You MAY use markdown (bold, bullet lists) inside content. Do not include any other sections.`;
 }
 
 export function getVideoScriptPrompt(articleTitle: string, articleContent: string): string {
-  return `Create a 60-90 second video news script based on this article.
+  return `Create a 60-90 second broadcast-ready video news script based on this article.
 
 Title: ${articleTitle}
 Content: ${articleContent}
 
-Generate a structured video script with 5-7 slides. Respond in JSON format:
-{
-  "slides": [
-    {
-      "type": "title",
-      "narration": "Opening narration text (10-15 seconds)",
-      "displayText": "Main headline text for the slide",
-      "duration": 12
-    },
-    {
-      "type": "narration",
-      "narration": "Key facts narration (10-15 seconds)",
-      "displayText": "Supporting text or key bullet points",
-      "duration": 12
-    },
-    {
-      "type": "data",
-      "narration": "Data narration explaining the numbers",
-      "displayText": "Chart title",
-      "duration": 15,
-      "dataPoints": [
-        { "label": "Category", "value": 100 }
-      ]
-    },
-    {
-      "type": "quote",
-      "narration": "Context for the quote",
-      "displayText": "Quote attribution",
-      "duration": 10,
-      "quote": { "text": "The actual quote", "author": "Person Name, Title" }
-    },
-    {
-      "type": "conclusion",
-      "narration": "Closing narration summarizing impact",
-      "displayText": "What to watch next",
-      "duration": 10
-    }
-  ]
-}
-
-Make narration natural and broadcast-ready. Include at least one data slide with 3-5 numeric data points.`;
+Produce 5-7 slides total. Use the slide types in this rough order: title, narration, data, quote, narration, conclusion. Include at least one "data" slide with 3-5 numeric dataPoints. Include at least one "quote" slide with a realistic attributed quote. Narration must be natural spoken English. Each slide.duration is in seconds (10-15 typical). For slides without dataPoints or a quote, set those fields to null.`;
 }
 
 export function getStoryArcPrompt(topic: string): string {
-  return `Analyze the story arc for: "${topic}"
+  return `Build a story-arc analysis for the topic: "${topic}".
 
-Generate a comprehensive story arc analysis in JSON format:
-{
-  "events": [
-    { "date": "YYYY-MM-DD", "title": "Event title", "description": "2-3 sentence description", "impact": "positive|negative|neutral", "sources": ["source names"] }
-  ],
-  "players": [
-    { "name": "Person name", "role": "Their role", "description": "Brief description", "sentiment": "positive|negative|neutral", "imageInitials": "AB" }
-  ],
-  "sentimentData": [
-    { "date": "YYYY-MM", "positive": 50, "negative": 30, "neutral": 20 }
-  ],
-  "predictions": ["Forward-looking prediction"],
-  "contrarianView": "Alternative perspective paragraph"
+Include 8-12 events with realistic dates spanning the past 12-18 months (YYYY-MM-DD). Include 4-6 named players (people, companies, or institutions) with imageInitials (1-3 chars). Include 10+ sentimentData points with date in YYYY-MM form, where positive + negative + neutral sums to roughly 100 each month. Provide 3-4 forward-looking predictions and a substantive contrarianView paragraph (3-5 sentences) that genuinely challenges the consensus view.`;
 }
 
-Include 8-12 events, 4-6 players, 10+ sentiment data points, 3-4 predictions, and a substantive contrarian view.`;
-}
-
-export function getTranslationPrompt(text: string, language: SupportedLanguage, articleTitle: string): string {
+export function getTranslationPrompt(
+  text: string,
+  language: SupportedLanguage,
+  articleTitle: string
+): string {
   const langNames: Record<SupportedLanguage, string> = {
     hindi: 'Hindi',
     tamil: 'Tamil',
@@ -153,44 +71,33 @@ export function getTranslationPrompt(text: string, language: SupportedLanguage, 
     bengali: 'Bengali',
   };
 
-  return `Translate and culturally adapt this business news article into ${langNames[language]}.
+  return `Translate AND culturally adapt this business news article into ${langNames[language]}.
 
 Article Title: ${articleTitle}
-Article Content: ${text}
+Article Content:
+${text}
 
-This is NOT a literal translation. Adapt the content for a ${langNames[language]}-speaking business audience:
-- Explain Western business terms in local context
-- Add cultural references where appropriate
-- Maintain the factual accuracy while making it accessible
-- Use appropriate business terminology in ${langNames[language]}
+This is NOT a literal translation. Adapt for a ${langNames[language]}-speaking business audience:
+- Explain Western business terms using local context.
+- Add cultural references where appropriate.
+- Maintain factual accuracy while keeping it accessible.
+- Use appropriate ${langNames[language]} business terminology and the ${langNames[language]} script.
 
-Respond in JSON format:
-{
-  "translatedText": "Full translated text in ${langNames[language]} script",
-  "contextNotes": [
-    { "original": "English term or phrase", "translated": "Translated equivalent", "note": "Explanation of the adaptation" }
-  ],
-  "culturalAdaptations": ["Description of cultural adaptations made"]
-}
-
-Include 3-5 context notes highlighting key translations or adaptations.`;
+Also return 3-5 contextNotes that highlight key translations or adaptations (original English term, ${langNames[language]} equivalent, and a brief explanatory note in English), and 2-3 culturalAdaptations describing higher-level adaptations made.`;
 }
 
 export function getSentimentPrompt(text: string): string {
-  return `Analyze the sentiment of this business news text.
+  return `Analyze the sentiment of the following business news text and return structured sentiment metrics. The positive / negative / neutral percentages must sum to roughly 100. score must be between -1 (very negative) and 1 (very positive). Include 3-6 keyPhrases and a 1-3 sentence analysis explaining the drivers.
 
-Text: ${text}
-
-Respond in JSON format:
-{
-  "overall": "positive|negative|neutral",
-  "score": 0.75,
-  "positive": 60,
-  "negative": 20,
-  "neutral": 20,
-  "keyPhrases": ["phrase contributing to sentiment"],
-  "analysis": "Brief sentiment analysis explanation"
+Text:
+${text}`;
 }
 
-Score should be between -1 (very negative) and 1 (very positive).`;
+export function getChatSystemPrompt(briefingContext: string, topicTitle: string): string {
+  return `You are ArcSense, an AI news analyst discussing a briefing on "${topicTitle}".
+
+Use the briefing context below to answer questions accurately and insightfully. Reference specific facts from the briefing when possible. If a question is outside the briefing's scope, say so but offer related insight grounded in Indian business / macro context. Keep answers to 2-4 short paragraphs.
+
+BRIEFING CONTEXT:
+${briefingContext || '(No briefing context provided.)'}`;
 }

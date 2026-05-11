@@ -7,46 +7,59 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 interface BriefingSectionProps {
   section: BriefingSectionType;
+  index?: number;
 }
 
-const sectionConfig: Record<string, { icon: typeof Star; color: string }> = {
-  highlights: { icon: Star, color: 'text-yellow-400' },
-  'deep-dive': { icon: Search, color: 'text-blue-400' },
-  'sector-impact': { icon: TrendingUp, color: 'text-green-400' },
-  'expert-takes': { icon: Quote, color: 'text-purple-400' },
-  'whats-next': { icon: ArrowRight, color: 'text-orange-400' },
+const sectionConfig: Record<string, { Icon: typeof Star }> = {
+  highlights:       { Icon: Star },
+  'deep-dive':      { Icon: Search },
+  'sector-impact':  { Icon: TrendingUp },
+  'expert-takes':   { Icon: Quote },
+  'whats-next':     { Icon: ArrowRight },
 };
 
-export default function BriefingSection({ section }: BriefingSectionProps) {
+export default function BriefingSection({ section, index = 0 }: BriefingSectionProps) {
   const [expanded, setExpanded] = useState(true);
   const config = sectionConfig[section.type] || sectionConfig.highlights;
-  const Icon = config.icon;
+  const Icon = config.Icon;
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-white/90 shadow-[0_6px_16px_rgba(15,23,42,0.06)]">
+    <article className="overflow-hidden rounded-xl border border-border bg-card shadow-paper">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex w-full items-center gap-2 p-3 transition-colors hover:bg-muted/60"
+        className="ui-transition flex w-full items-center gap-3 px-5 py-4 text-left hover:bg-secondary/60"
+        aria-expanded={expanded}
       >
-        <Icon className={`w-4 h-4 ${config.color} shrink-0`} />
-        <span className="flex-1 text-left text-sm font-semibold text-foreground">{section.title}</span>
-        <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${expanded ? 'rotate-180' : ''}`} />
+        <span className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
+          {String(index + 1).padStart(2, '0')}
+        </span>
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border bg-secondary text-primary">
+          <Icon className="h-3.5 w-3.5" />
+        </span>
+        <h3 className="flex-1 font-display text-[1.15rem] leading-tight text-foreground">
+          {section.title}
+        </h3>
+        <ChevronDown
+          className={`h-4 w-4 text-muted-foreground transition-transform ${
+            expanded ? 'rotate-180' : ''
+          }`}
+        />
       </button>
 
-      <AnimatePresence>
+      <AnimatePresence initial={false}>
         {expanded && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div className="px-3 pb-3 text-sm leading-relaxed whitespace-pre-line text-slate-700">
+            <div className="border-t border-border px-5 py-4 text-[14.5px] leading-relaxed text-foreground/90 whitespace-pre-line">
               {section.content}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </article>
   );
 }

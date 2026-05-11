@@ -3,30 +3,23 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import {
-  Newspaper,
-  Compass,
-  Video,
-  GitBranch,
-  Languages,
-  Menu,
-  X,
-  Zap,
-} from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 
 const navLinks = [
-  { href: '/', label: 'Home', icon: Zap },
-  { href: '/my-et', label: 'My ET', icon: Newspaper },
-  { href: '/navigator', label: 'Navigator', icon: Compass },
-  { href: '/video-studio', label: 'Video Studio', icon: Video },
-  { href: '/story-arc', label: 'Story Arc', icon: GitBranch },
-  { href: '/vernacular', label: 'Vernacular', icon: Languages },
+  { href: '/', label: 'Today' },
+  { href: '/my-et', label: 'My ET' },
+  { href: '/navigator', label: 'Navigator' },
+  { href: '/video-studio', label: 'Studio' },
+  { href: '/story-arc', label: 'Story Arc' },
+  { href: '/vernacular', label: 'Vernacular' },
 ];
 
 export default function Navbar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [aiMode, setAiMode] = useState<'loading' | 'live' | 'mock'>('loading');
+  const [providerLabel, setProviderLabel] = useState<string>('');
+  const [now, setNow] = useState<string>('');
 
   useEffect(() => {
     let mounted = true;
@@ -34,97 +27,165 @@ export default function Navbar() {
     async function loadStatus() {
       try {
         const res = await fetch('/api/ai/provider-status', { cache: 'no-store' });
-        const data = await res.json() as { live?: boolean };
+        const data = (await res.json()) as { live?: boolean; provider?: string; model?: string | null };
         if (!mounted) return;
         setAiMode(data.live ? 'live' : 'mock');
+        if (data.live && data.provider) {
+          setProviderLabel(data.model ? `${data.provider} · ${data.model.split('-')[0]}` : data.provider);
+        }
       } catch {
         if (!mounted) return;
         setAiMode('mock');
       }
     }
 
+    function tick() {
+      const d = new Date();
+      const hh = String(d.getUTCHours()).padStart(2, '0');
+      const mm = String(d.getUTCMinutes()).padStart(2, '0');
+      setNow(`${hh}:${mm} UTC`);
+    }
+
     loadStatus();
+    tick();
+    const id = setInterval(tick, 1000 * 30);
+
     return () => {
       mounted = false;
+      clearInterval(id);
     };
   }, []);
 
   return (
-    <nav className="surface-glass fixed top-0 left-0 right-0 z-50 border-b border-border/80">
-      <div className="mx-auto flex h-[4.5rem] max-w-[1280px] items-center justify-between px-4 lg:px-8">
-        <Link href="/" className="flex items-center gap-2 shrink-0">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[linear-gradient(135deg,#4f46e5_0%,#7c3aed_100%)] shadow-[0_10px_24px_rgba(79,70,229,0.24)]">
-            <Zap className="w-5 h-5 text-white" />
-          </div>
-          <span className="text-gradient-primary text-lg font-bold tracking-tight">
+    <nav className="fixed left-0 right-0 top-0 z-50 border-b border-border surface-glass">
+      <div className="mx-auto flex h-16 max-w-[1320px] items-center gap-6 px-5 sm:px-8">
+        {/* Wordmark */}
+        <Link href="/" className="flex shrink-0 items-baseline gap-2">
+          <span className="font-display text-2xl leading-none tracking-tight text-foreground">
             ArcSense
+          </span>
+          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            Intelligence
           </span>
         </Link>
 
-        <div className="hidden md:flex lg:hidden items-center gap-1.5 rounded-2xl border border-border/80 bg-white/80 p-1 shadow-[0_6px_16px_rgba(15,23,42,0.06)]">
+        <span className="hidden h-5 w-px bg-border md:block" />
+
+        {/* Primary nav */}
+        <div className="hidden flex-1 items-center gap-1 md:flex">
           {navLinks.map((link) => {
-            const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href));
-            const Icon = link.icon;
+            const isActive =
+              pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href));
             return (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`ui-transition flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-sm font-medium ${
+                className={`ui-transition relative rounded-md px-3 py-1.5 text-[13.5px] font-medium ${
                   isActive
-                    ? 'bg-[linear-gradient(135deg,#4f46e5_0%,#7c3aed_100%)] text-white shadow-[0_8px_20px_rgba(79,70,229,0.24)]'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    ? 'text-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                <Icon className="w-4 h-4" />
                 {link.label}
+                {isActive && (
+                  <span className="absolute inset-x-3 -bottom-[18px] hidden h-px bg-primary md:block" />
+                )}
               </Link>
             );
           })}
         </div>
 
-        <div className="hidden sm:flex items-center">
-          <span
-            className={`rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${
-              aiMode === 'live'
-                ? 'border border-emerald-300 bg-emerald-50 text-emerald-700'
-                : aiMode === 'mock'
-                  ? 'border border-amber-300 bg-amber-50 text-amber-700'
-                  : 'border border-slate-300 bg-slate-50 text-slate-600'
-            }`}
-          >
-            {aiMode === 'live' ? 'Live AI' : aiMode === 'mock' ? 'Mock Mode' : 'Checking...'}
+        {/* Right cluster: clock + status + search hint */}
+        <div className="ml-auto hidden items-center gap-3 sm:flex">
+          <span className="hidden font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground lg:inline">
+            {now}
+          </span>
+
+          <span className="hidden h-5 w-px bg-border lg:block" />
+
+          <span className="inline-flex items-center gap-1.5 font-mono text-[10.5px] uppercase tracking-[0.14em] text-muted-foreground">
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${
+                aiMode === 'live'
+                  ? 'bg-signal animate-pulse-dot'
+                  : aiMode === 'mock'
+                    ? 'bg-amber-500'
+                    : 'bg-muted-foreground/60'
+              }`}
+            />
+            {aiMode === 'live'
+              ? providerLabel
+                ? `Live · ${providerLabel}`
+                : 'Live'
+              : aiMode === 'mock'
+                ? 'Demo Mode'
+                : 'Checking'}
+          </span>
+
+          <span className="hidden h-5 w-px bg-border lg:block" />
+
+          <span className="hidden items-center gap-1.5 lg:inline-flex">
+            <span className="font-mono text-[11px] text-muted-foreground">Search</span>
+            <kbd className="kbd">⌘</kbd>
+            <kbd className="kbd">K</kbd>
           </span>
         </div>
 
+        {/* Mobile toggle */}
         <button
-          className="ui-transition md:hidden rounded-xl border border-border/80 bg-white p-2 text-muted-foreground shadow-[0_4px_12px_rgba(15,23,42,0.06)] hover:text-foreground"
-          onClick={() => setMobileOpen(!mobileOpen)}
+          aria-label="Toggle menu"
+          aria-expanded={mobileOpen}
+          className="ui-transition ml-auto rounded-md border border-border bg-card p-2 text-muted-foreground hover:text-foreground md:hidden"
+          onClick={() => setMobileOpen((v) => !v)}
         >
-          {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          {mobileOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
         </button>
       </div>
 
+      {/* Mobile drawer */}
       {mobileOpen && (
-        <div className="md:hidden border-t border-border/80 bg-background/95 pb-3">
-          {navLinks.map((link) => {
-            const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href));
-            const Icon = link.icon;
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMobileOpen(false)}
-                className={`ui-transition mx-2 mt-1.5 flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium ${
-                  isActive
-                    ? 'bg-[linear-gradient(135deg,#4f46e5_0%,#7c3aed_100%)] text-white'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+        <div className="border-t border-border bg-background/95 md:hidden">
+          <div className="grid divide-y divide-border">
+            {navLinks.map((link) => {
+              const isActive =
+                pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href));
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMobileOpen(false)}
+                  className={`ui-transition px-5 py-3.5 text-sm ${
+                    isActive
+                      ? 'text-foreground bg-secondary'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
+          </div>
+          <div className="flex items-center justify-between border-t border-border px-5 py-3 font-mono text-[10.5px] uppercase tracking-[0.14em] text-muted-foreground">
+            <span>{now}</span>
+            <span className="inline-flex items-center gap-1.5">
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${
+                  aiMode === 'live'
+                    ? 'bg-signal animate-pulse-dot'
+                    : aiMode === 'mock'
+                      ? 'bg-amber-500'
+                      : 'bg-muted-foreground/60'
                 }`}
-              >
-                <Icon className="w-4 h-4" />
-                {link.label}
-              </Link>
-            );
-          })}
+              />
+              {aiMode === 'live'
+                ? providerLabel
+                  ? `Live · ${providerLabel}`
+                  : 'Live'
+                : aiMode === 'mock'
+                  ? 'Demo'
+                  : 'Checking'}
+            </span>
+          </div>
         </div>
       )}
     </nav>

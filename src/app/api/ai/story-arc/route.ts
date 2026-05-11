@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateCompletion, hasLiveAIConfigured } from '@/lib/ai';
+import { generateText, Output } from 'ai';
+import { chatModel, hasLiveAIConfigured, DEFAULT_SYSTEM_PROMPT } from '@/lib/ai';
 import { getStoryArcPrompt } from '@/lib/prompts';
+import { storyArcSchema } from '@/lib/schemas';
 import { storyArcs } from '@/data/mock-story-arcs';
+
+export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,22 +24,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(storyArcs[0]);
     }
 
-    const prompt = getStoryArcPrompt(topic);
-    const result = await generateCompletion(prompt);
+    const { experimental_output } = await generateText({
+      model: chatModel,
+      system: DEFAULT_SYSTEM_PROMPT,
+      prompt: getStoryArcPrompt(topic),
+      experimental_output: Output.object({ schema: storyArcSchema }),
+    });
 
-    try {
-      const parsed = JSON.parse(result);
-      return NextResponse.json({
-        id: `arc-${Date.now()}`,
-        title: topic,
-        description: `Story arc analysis for ${topic}`,
-        category: 'Analysis',
-        ...parsed,
-      });
-    } catch {
-      return NextResponse.json(storyArcs[0]);
-    }
-  } catch {
-    return NextResponse.json({ error: 'Failed to generate story arc' }, { status: 500 });
+    return NextResponse.json({
+      id: `arc-${Date.now()}`,
+      title: topic,
+      description: `Story arc analysis for ${topic}`,
+      category: 'Analysis',
+      events: experimental_output.events.map((e, i) => ({ id: `evt-${i}`, ...e })),
+      players: experimental_output.players.map((p, i) => ({ id: `player-${i}`, ...p })),
+      sentimentData: experimental_output.sentimentData,
+      predictions: experimental_output.predictions,
+      contrarianView: experimental_output.contrarianView,
+    });
+  } catch (error) {
+    console.error('[story-arc] error:', error);
+    return NextResponse.json(storyArcs[0]);
   }
 }
